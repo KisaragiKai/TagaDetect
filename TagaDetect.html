@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TagaDetect - AI Text Detector</title>
+    <link rel="stylesheet" href="TagaDetect.css">
+</head>
+<body>
+
+    <!-- Left Header / Collapsible Sidebar Navigation -->
+  <header class="sidebar closed" id="sidebar">
+    <div class="sidebar-header">
+      <img src="Logo TagaDetect.png" alt="Logo" class="logo">
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li>
+          <a href="#" class="nav-link active" onclick="switchTab('detector', event)">
+            <img src="Detector Icon.png" alt="Detector Icon" class="nav-icon">
+            <span>AI-Detector</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link" onclick="switchTab('history', event)">
+            <img src="History Icon.png" alt="History Icon" class="nav-icon">
+            <span>History</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Sidebar Toggle Button (Top-Left) -->
+  <button class="toggle-btn" id="toggleBtn" onclick="toggleSidebar()" aria-label="Toggle Navigation Menu">☰</button>
+
+  <!-- Theme Switcher Button (Top-Right) -->
+  <div class="top-right-theme-container">
+    <label class="theme-switch" aria-label="Toggle Dark/Light Mode">
+      <input type="checkbox" id="theme-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <!-- Main Content Layout -->
+  <main class="main-content">
+    
+    <!-- DETECTOR VIEW -->
+    <section id="detector-view" class="view-section active">
+      <div class="top-header-divider">
+        <span class="page-title-text">Detector</span>
+      </div>
+
+      <div class="detector-stack">
+        
+        <!-- TOP: Content Analysis Box -->
+        <div class="card content-analysis">
+          <h3>Content Analysis</h3>
+          <textarea id="textInput" placeholder="Paste your English, Tagalog, or Taglish text here or upload a file."></textarea>
+          
+          <div class="button-group">
+            <label for="fileUpload" class="upload-btn">UPLOAD FILE (.TXT)</label>
+            <input type="file" id="fileUpload" accept=".txt" style="display: none;" onchange="handleFileUpload(event)">
+            <button class="detect-btn" onclick="analyzeText()">Detect AI Content</button>
+          </div>
+        </div>
+
+        <!-- MIDDLE: Result Analysis Box -->
+        <div class="card result-analysis">
+          <h3>Result Analysis</h3>
+          <div class="result-dashboard">
+            <div class="gauge-container">
+              <div class="circular-progress" id="circularProgress">
+                <span id="scorePercentage">0%</span>
+              </div>
+              <div class="risk-badge" id="riskLevel">Risk Level</div>
+            </div>
+
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <label>AI Score</label>
+                <div class="value" id="scoreText">0%</div>
+                <div class="sub-info">Overall probability score</div>
+              </div>
+              <div class="metric-card">
+                <label>Classification</label>
+                <div class="value" id="likelyText">Ready</div>
+                <div class="sub-info">Predicted text source</div>
+              </div>
+              <div class="metric-card">
+                <label>Analysis Mode</label>
+                <div class="value" style="color: var(--accent-purple);">Sentence Heatmap</div>
+                <div class="sub-info">Detailed breakdown active below</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM: Sentence-Level Heatmap Box -->
+        <div class="card heatmap-card">
+          <h3>Sentence-Level Heatmap</h3>
+          <div id="heatmapContainer" class="heatmap-box">
+            <span class="placeholder-text">Run detection to see sentence breakdown...</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- HISTORY VIEW -->
+    <section id="history-view" class="view-section">
+      <div class="top-header-divider">
+        <span class="page-title-text">History</span>
+      </div>
+      <div class="card history-card">
+        <h3>Analysis History</h3>
+        <div id="historyList" class="history-list">
+          <p class="placeholder-text">No previous scans found.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let analysisHistory = [];
+
+    /* Sidebar Toggle */
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('toggleBtn');
+      
+      sidebar.classList.toggle('closed');
+      
+      if (sidebar.classList.contains('closed')) {
+        toggleBtn.textContent = '☰';
+      } else {
+        toggleBtn.textContent = '✕';
+      }
+    }
+
+    /* Tab Switcher */
+    function switchTab(tabName, event) {
+      if (event) event.preventDefault();
+      
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => link.classList.remove('active'));
+
+      if (tabName === 'detector') {
+        document.getElementById('detector-view').classList.add('active');
+        document.getElementById('history-view').classList.remove('active');
+        navLinks[0].classList.add('active');
+      } else {
+        document.getElementById('history-view').classList.add('active');
+        document.getElementById('detector-view').classList.remove('active');
+        navLinks[1].classList.add('active');
+      }
+      
+      if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.add('closed');
+        document.getElementById('toggleBtn').textContent = '☰';
+      }
+    }
+
+    /* Theme Switcher Logic */
+    const themeToggle = document.getElementById('theme-toggle');
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeToggle.checked = true;
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.checked = false;
+      }
+    }
+
+    // Initialize saved theme on load
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Event listener for toggle changes
+    themeToggle.addEventListener('change', function() {
+      const newTheme = this.checked ? 'light' : 'dark';
+      localStorage.setItem('theme', newTheme);
+      applyTheme(newTheme);
+    });
+
+    /* Text Detection & Analysis */
+    function analyzeText() {
+      const text = document.getElementById('textInput').value.trim();
+      if (!text) {
+        alert("Please enter or upload some text to analyze.");
+        return;
+      }
+
+      const randomScore = Math.floor(Math.random() * 75) + 15;
+      let risk = "Low Risk";
+      let color = "#4caf50";
+      
+      if (randomScore > 70) {
+        risk = "High AI Risk";
+        color = "#f44336";
+      } else if (randomScore > 40) {
+        risk = "Moderate Risk";
+        color = "#ff9800";
+      }
+
+      document.getElementById('scorePercentage').textContent = randomScore + '%';
+      document.getElementById('scoreText').textContent = randomScore + '% AI';
+      document.getElementById('likelyText').textContent = risk;
+      
+      const badge = document.getElementById('riskLevel');
+      badge.textContent = risk;
+      badge.style.backgroundColor = color;
+      badge.style.color = "#ffffff";
+
+      const circularProgress = document.getElementById('circularProgress');
+      const trackBg = getComputedStyle(document.documentElement).getPropertyValue('--gauge-track').trim() || '#2a2542';
+      circularProgress.style.background = `conic-gradient(${color} ${randomScore * 3.6}deg, ${trackBg} 0deg)`;
+
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      let heatmapHtml = '';
+      sentences.forEach(sentence => {
+        const sentScore = Math.random();
+        let bgClass = 'heat-low';
+        if (sentScore > 0.7) bgClass = 'heat-high';
+        else if (sentScore > 0.4) bgClass = 'heat-mid';
+        
+        heatmapHtml += `<span class="heatmap-sentence ${bgClass}">${sentence.trim()}</span> `;
+      });
+      document.getElementById('heatmapContainer').innerHTML = heatmapHtml;
+
+      analysisHistory.unshift({
+        text: text.substring(0, 60) + (text.length > 60 ? '...' : ''),
+        score: randomScore,
+        risk: risk,
+        date: new Date().toLocaleTimeString()
+      });
+      updateHistoryUI();
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('textInput').value = e.target.result;
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function updateHistoryUI() {
+      const historyList = document.getElementById('historyList');
+      if (analysisHistory.length === 0) {
+        historyList.innerHTML = `<p class="placeholder-text">No previous scans found.</p>`;
+        return;
+      }
+
+      let html = '';
+      analysisHistory.forEach(item => {
+        html += `
+          <div class="history-item">
+            <div>
+              <strong>"${item.text}"</strong>
+              <small style="color: var(--text-muted); display: block; margin-top: 6px;">Scanned at ${item.date}</small>
+            </div>
+            <div style="text-align: right;">
+              <span class="history-score">${item.score}%</span>
+              <span style="font-size: 0.85rem; display: block; color: var(--accent-purple); font-weight: 600;">${item.risk}</span>
+            </div>
+          </div>
+        `;
+      });
+      historyList.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
