@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import logo from './assets/LogoTagaDetect.png'
 import detectorIcon from './assets/DetectorIcon.png'
 import historyIcon from './assets/HistoryIcon.png'
+import notesIcon from './assets/NotesIcon.png'
 
 const cardClass =
   'bg-card border border-line rounded-[18px] p-[30px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-colors duration-300'
@@ -18,6 +19,29 @@ const heatClasses = {
   high: 'bg-[rgba(244,67,54,0.2)] border-[#f44336]',
 }
 
+const pageTitles = {
+  detector: 'Detector',
+  history: 'History',
+  notes: 'Notes',
+  note: 'Notes',
+}
+
+const sampleNotes = [1, 2, 3, 4, 5, 6].map((n) => ({
+  id: n,
+  title: `Sample Note ${n}`,
+  body: 'This is a sample note. Click it to edit the text.',
+}))
+
+function loadNotes() {
+  try {
+    const saved = localStorage.getItem('notes')
+    if (saved) return JSON.parse(saved)
+  } catch {
+    // If saved notes cannot be read, start with the samples
+  }
+  return sampleNotes
+}
+
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('detector')
@@ -28,8 +52,12 @@ function App() {
   const [theme, setTheme] = useState(
     () => localStorage.getItem('theme') || 'dark'
   )
+  const [notes, setNotes] = useState(loadNotes)
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [activeNoteId, setActiveNoteId] = useState(null)
 
   const isLight = theme === 'light'
+  const activeNote = notes.find((n) => n.id === activeNoteId)
 
   // Apply the theme to the page and remember it
   useEffect(() => {
@@ -41,12 +69,46 @@ function App() {
     localStorage.setItem('theme', theme)
   }, [theme])
 
-  function switchTab(tabName, event) {
-    if (event) event.preventDefault()
-    setActiveTab(tabName)
+  // Save the notes every time they change
+  useEffect(() => {
+    localStorage.setItem('notes', JSON.stringify(notes))
+  }, [notes])
+
+  function closeSidebarOnMobile() {
     if (window.innerWidth <= 768) {
       setSidebarOpen(false)
     }
+  }
+
+  function switchTab(tabName, event) {
+    if (event) event.preventDefault()
+    setActiveTab(tabName)
+    closeSidebarOnMobile()
+  }
+
+  function openNote(id, event) {
+    if (event) event.preventDefault()
+    setActiveNoteId(id)
+    setActiveTab('note')
+    closeSidebarOnMobile()
+  }
+
+  function addNote() {
+    const newNote = { id: Date.now(), title: 'Untitled note', body: '' }
+    setNotes((prev) => [newNote, ...prev])
+    openNote(newNote.id)
+  }
+
+  function updateNote(id, field, value) {
+    setNotes((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, [field]: value } : n))
+    )
+  }
+
+  function deleteNote(id) {
+    if (!window.confirm('Delete this note?')) return
+    setNotes((prev) => prev.filter((n) => n.id !== id))
+    setActiveTab('notes')
   }
 
   function analyzeText() {
@@ -106,6 +168,8 @@ function App() {
       activeTab === name ? 'bg-accent text-white' : 'text-muted'
     }`
 
+  const notesRowActive = activeTab === 'notes' || activeTab === 'note'
+
   const gaugeBackground = result
     ? `conic-gradient(${result.color} ${result.score * 3.6}deg, var(--color-gauge-track) 0deg)`
     : 'conic-gradient(var(--color-accent) 0deg, var(--color-gauge-track) 0deg)'
@@ -150,6 +214,69 @@ function App() {
                 />
                 <span>History</span>
               </a>
+            </li>
+
+            {/* Notes row: icon and text open the grid, the arrow opens the list */}
+            <li className="mb-3">
+              <div
+                className={`flex items-center rounded-[10px] transition-all duration-200 hover:bg-accent hover:text-white ${
+                  notesRowActive ? 'bg-accent text-white' : 'text-muted'
+                }`}
+              >
+                <a
+                  href="#"
+                  className="flex flex-1 items-center gap-3 px-[18px] py-3.5 text-[1.1rem] no-underline text-inherit"
+                  onClick={(e) => switchTab('notes', e)}
+                >
+                  <img
+                    src={notesIcon}
+                    alt="Notes Icon"
+                    className="w-[30px] h-[30px] object-contain"
+                  />
+                  <span>Notes</span>
+                </a>
+                <button
+                  type="button"
+                  aria-label="Show or hide the list of notes"
+                  aria-expanded={notesOpen}
+                  className="px-4 py-3.5 text-[1.1rem] text-inherit bg-transparent border-none cursor-pointer"
+                  onClick={() => setNotesOpen(!notesOpen)}
+                >
+                  <span
+                    className={`inline-block transition-transform duration-200 ${
+                      notesOpen ? 'rotate-90' : ''
+                    }`}
+                  >
+                    &gt;
+                  </span>
+                </button>
+              </div>
+
+              {notesOpen && (
+                <ul className="list-none mt-1 ml-3 max-h-[260px] overflow-y-auto">
+                  {notes.length === 0 ? (
+                    <li className="px-[18px] py-2 text-muted text-[0.95rem]">
+                      No notes yet
+                    </li>
+                  ) : (
+                    notes.map((note) => (
+                      <li key={note.id}>
+                        <a
+                          href="#"
+                          onClick={(e) => openNote(note.id, e)}
+                          className={`block truncate px-[18px] py-2 rounded-lg text-base no-underline transition-all duration-200 hover:bg-accent hover:text-white ${
+                            activeTab === 'note' && activeNoteId === note.id
+                              ? 'bg-accent text-white'
+                              : 'text-muted'
+                          }`}
+                        >
+                          {note.title || 'Untitled note'}
+                        </a>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
             </li>
           </ul>
         </nav>
@@ -204,7 +331,7 @@ function App() {
         {/* Page title */}
         <div className="flex justify-center items-center mb-[35px] border-b border-line pb-[15px]">
           <span className="text-[1.4rem] text-main font-semibold pb-0.5">
-            {activeTab === 'detector' ? 'Detector' : 'History'}
+            {pageTitles[activeTab]}
           </span>
         </div>
 
@@ -344,6 +471,77 @@ function App() {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* NOTES GRID VIEW */}
+        {activeTab === 'notes' && (
+          <section>
+            <div className="flex justify-end mb-5">
+              <button
+                className="px-5 py-3 rounded-[10px] font-semibold cursor-pointer border-none bg-accent text-white transition-all duration-200 hover:bg-accent-hover"
+                onClick={addNote}
+              >
+                + New note
+              </button>
+            </div>
+
+            {notes.length === 0 ? (
+              <p className="text-muted">
+                No notes yet. Click New note to create one.
+              </p>
+            ) : (
+              <div className="columns-1 sm:columns-2 lg:columns-4 gap-4">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    onClick={() => openNote(note.id)}
+                    className="break-inside-avoid mb-4 min-h-[140px] p-4 rounded-2xl bg-[#ffdd57] text-[#1e1b2e] cursor-pointer shadow-[0_4px_10px_rgba(0,0,0,0.15)] transition-transform duration-200 hover:-translate-y-1"
+                  >
+                    <h4 className="font-semibold mb-2 truncate">
+                      {note.title || 'Untitled note'}
+                    </h4>
+                    <p className="text-[0.95rem] whitespace-pre-wrap break-words line-clamp-6">
+                      {note.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* SINGLE NOTE VIEW */}
+        {activeTab === 'note' && activeNote && (
+          <section>
+            <button
+              className="mb-5 text-accent font-semibold bg-transparent border-none cursor-pointer text-base hover:text-accent-hover"
+              onClick={() => setActiveTab('notes')}
+            >
+              ← Back to notes
+            </button>
+            <div className={cardClass}>
+              <input
+                value={activeNote.title}
+                onChange={(e) => updateNote(activeNote.id, 'title', e.target.value)}
+                placeholder="Note title"
+                className="w-full bg-card-inner border border-line rounded-xl p-4 mb-4 text-main text-[1.2rem] font-semibold outline-none transition-colors duration-300 focus:border-accent"
+              />
+              <textarea
+                value={activeNote.body}
+                onChange={(e) => updateNote(activeNote.id, 'body', e.target.value)}
+                placeholder="Write your note here..."
+                className="w-full h-[340px] bg-card-inner border border-line rounded-xl p-5 text-main text-[1.05rem] leading-[1.6] resize-y outline-none transition-colors duration-300 focus:border-accent"
+              />
+              <div className="flex justify-end mt-5">
+                <button
+                  className="px-5 py-3 rounded-[10px] font-semibold cursor-pointer border-none bg-[#f44336] text-white transition-all duration-200 hover:opacity-90"
+                  onClick={() => deleteNote(activeNote.id)}
+                >
+                  Delete note
+                </button>
               </div>
             </div>
           </section>
