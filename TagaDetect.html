@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TagaDetect - AI Text Detector</title>
     <link rel="stylesheet" href="TagaDetect.css">
-    <link rel="icon" type="png" href="/favicon.png">
 </head>
 <body>
 
@@ -17,16 +16,27 @@
     <nav class="sidebar-nav">
       <ul>
         <li>
-          <a href="#" class="nav-link active" onclick="switchTab('detector', event)">
+          <a href="#" class="nav-link active" id="navDetector" onclick="switchTab('detector', event)">
             <img src="Detector Icon.png" alt="Detector Icon" class="nav-icon">
             <span>AI-Detector</span>
           </a>
         </li>
         <li>
-          <a href="#" class="nav-link" onclick="switchTab('history', event)">
+          <a href="#" class="nav-link" id="navHistory" onclick="switchTab('history', event)">
             <img src="History Icon.png" alt="History Icon" class="nav-icon">
             <span>History</span>
           </a>
+        </li>
+        <li>
+          <!-- Notes row: icon and text open the grid, the arrow opens the list -->
+          <div class="notes-row" id="notesRow">
+            <div class="notes-main" onclick="switchTab('notes', event)">
+              <img src="Notes Icon.png" alt="Notes Icon" class="nav-icon">
+              <span>Notes</span>
+            </div>
+            <button type="button" class="notes-arrow" id="notesArrow" onclick="toggleNotesList()" aria-label="Show or hide the list of notes" aria-expanded="false">&gt;</button>
+          </div>
+          <ul class="notes-list" id="notesList"></ul>
         </li>
       </ul>
     </nav>
@@ -121,6 +131,32 @@
       </div>
     </section>
 
+    <!-- NOTES GRID VIEW -->
+    <section id="notes-view" class="view-section">
+      <div class="top-header-divider">
+        <span class="page-title-text">Notes</span>
+      </div>
+      <div class="notes-toolbar">
+        <button class="new-note-btn" onclick="addNote()">+ New note</button>
+      </div>
+      <div id="notesGrid" class="notes-grid"></div>
+    </section>
+
+    <!-- SINGLE NOTE VIEW -->
+    <section id="note-view" class="view-section">
+      <div class="top-header-divider">
+        <span class="page-title-text">Notes</span>
+      </div>
+      <button class="back-btn" onclick="switchTab('notes', event)">← Back to notes</button>
+      <div class="card">
+        <input type="text" id="noteTitle" class="note-title-input" placeholder="Note title" oninput="updateActiveNote()">
+        <textarea id="noteBody" class="note-body-input" placeholder="Write your note here..." oninput="updateActiveNote()"></textarea>
+        <div class="note-actions">
+          <button class="delete-note-btn" onclick="deleteActiveNote()">Delete note</button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script>
@@ -140,27 +176,171 @@
       }
     }
 
-    /* Tab Switcher */
-    function switchTab(tabName, event) {
-      if (event) event.preventDefault();
-      
-      const navLinks = document.querySelectorAll('.nav-link');
-      navLinks.forEach(link => link.classList.remove('active'));
-
-      if (tabName === 'detector') {
-        document.getElementById('detector-view').classList.add('active');
-        document.getElementById('history-view').classList.remove('active');
-        navLinks[0].classList.add('active');
-      } else {
-        document.getElementById('history-view').classList.add('active');
-        document.getElementById('detector-view').classList.remove('active');
-        navLinks[1].classList.add('active');
-      }
-      
+    function closeSidebarOnMobile() {
       if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.add('closed');
         document.getElementById('toggleBtn').textContent = '☰';
       }
+    }
+
+    /* Notes data (saved in the browser) */
+    const sampleNotes = [1, 2, 3, 4, 5, 6].map(function(n) {
+      return {
+        id: n,
+        title: 'Sample Note ' + n,
+        body: 'This is a sample note. Click it to edit the text.'
+      };
+    });
+
+    function loadNotes() {
+      try {
+        const saved = localStorage.getItem('notes');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        // If saved notes cannot be read, start with the samples
+      }
+      return sampleNotes;
+    }
+
+    function saveNotes() {
+      localStorage.setItem('notes', JSON.stringify(notes));
+    }
+
+    let notes = loadNotes();
+    let activeNoteId = null;
+
+    /* Tab Switcher */
+    function switchTab(tabName, event) {
+      if (event) event.preventDefault();
+
+      const views = {
+        detector: 'detector-view',
+        history: 'history-view',
+        notes: 'notes-view',
+        note: 'note-view'
+      };
+
+      document.querySelectorAll('.view-section').forEach(function(section) {
+        section.classList.remove('active');
+      });
+      document.getElementById(views[tabName]).classList.add('active');
+
+      document.getElementById('navDetector').classList.toggle('active', tabName === 'detector');
+      document.getElementById('navHistory').classList.toggle('active', tabName === 'history');
+      document.getElementById('notesRow').classList.toggle('active', tabName === 'notes' || tabName === 'note');
+
+      if (tabName !== 'note') activeNoteId = null;
+      renderNotesList();
+      if (tabName === 'notes') renderNotesGrid();
+
+      closeSidebarOnMobile();
+    }
+
+    /* Notes: dropdown list in the sidebar */
+    function toggleNotesList() {
+      const list = document.getElementById('notesList');
+      const arrow = document.getElementById('notesArrow');
+      const isOpen = list.classList.toggle('open');
+      arrow.classList.toggle('open', isOpen);
+      arrow.setAttribute('aria-expanded', isOpen);
+    }
+
+    function renderNotesList() {
+      const list = document.getElementById('notesList');
+      list.innerHTML = '';
+
+      if (notes.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'notes-empty';
+        empty.textContent = 'No notes yet';
+        list.appendChild(empty);
+        return;
+      }
+
+      notes.forEach(function(note) {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = '#';
+        if (note.id === activeNoteId) link.classList.add('active');
+        link.addEventListener('click', function(e) {
+          openNote(note.id, e);
+        });
+
+        const label = document.createElement('span');
+        label.textContent = note.title || 'Untitled note';
+
+        link.appendChild(label);
+        li.appendChild(link);
+        list.appendChild(li);
+      });
+    }
+
+    /* Notes: sticky note grid page */
+    function renderNotesGrid() {
+      const grid = document.getElementById('notesGrid');
+      grid.innerHTML = '';
+
+      if (notes.length === 0) {
+        const message = document.createElement('p');
+        message.className = 'placeholder-text';
+        message.textContent = 'No notes yet. Click New note to create one.';
+        grid.appendChild(message);
+        return;
+      }
+
+      notes.forEach(function(note) {
+        const card = document.createElement('div');
+        card.className = 'sticky-note';
+        card.addEventListener('click', function() {
+          openNote(note.id);
+        });
+
+        const title = document.createElement('h4');
+        title.textContent = note.title || 'Untitled note';
+
+        const body = document.createElement('p');
+        body.textContent = note.body;
+
+        card.appendChild(title);
+        card.appendChild(body);
+        grid.appendChild(card);
+      });
+    }
+
+    /* Notes: single note page */
+    function openNote(id, event) {
+      if (event) event.preventDefault();
+      const note = notes.find(function(n) { return n.id === id; });
+      if (!note) return;
+
+      activeNoteId = id;
+      document.getElementById('noteTitle').value = note.title;
+      document.getElementById('noteBody').value = note.body;
+      switchTab('note');
+    }
+
+    function addNote() {
+      const newNote = { id: Date.now(), title: 'Untitled note', body: '' };
+      notes.unshift(newNote);
+      saveNotes();
+      openNote(newNote.id);
+    }
+
+    function updateActiveNote() {
+      const note = notes.find(function(n) { return n.id === activeNoteId; });
+      if (!note) return;
+
+      note.title = document.getElementById('noteTitle').value;
+      note.body = document.getElementById('noteBody').value;
+      saveNotes();
+      renderNotesList();
+    }
+
+    function deleteActiveNote() {
+      if (!confirm('Delete this note?')) return;
+      notes = notes.filter(function(n) { return n.id !== activeNoteId; });
+      saveNotes();
+      switchTab('notes');
     }
 
     /* Theme Switcher Logic */
@@ -276,6 +456,10 @@
       });
       historyList.innerHTML = html;
     }
+
+    // Draw the notes the first time the page loads
+    renderNotesList();
+    renderNotesGrid();
   </script>
 </body>
 </html>

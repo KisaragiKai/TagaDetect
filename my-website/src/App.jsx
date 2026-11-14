@@ -493,12 +493,12 @@ function App() {
                 No notes yet. Click New note to create one.
               </p>
             ) : (
-              <div className="columns-1 sm:columns-2 lg:columns-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
                 {notes.map((note) => (
                   <div
                     key={note.id}
                     onClick={() => openNote(note.id)}
-                    className="break-inside-avoid mb-4 min-h-[140px] p-4 rounded-2xl bg-[#ffdd57] text-[#1e1b2e] cursor-pointer shadow-[0_4px_10px_rgba(0,0,0,0.15)] transition-transform duration-200 hover:-translate-y-1"
+                    className="min-h-[140px] p-4 rounded-2xl bg-[#6b6880] text-white cursor-pointer shadow-[0_4px_10px_rgba(0,0,0,0.15)] transition-transform duration-200 hover:-translate-y-1"
                   >
                     <h4 className="font-semibold mb-2 truncate">
                       {note.title || 'Untitled note'}

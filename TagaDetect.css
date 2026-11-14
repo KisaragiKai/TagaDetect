@@ -490,3 +490,228 @@ input:checked + .slider:after {
   font-size: 1.4rem;
   font-weight: bold;
 }
+
+/* ===== Notes Feature ===== */
+
+/* Notes row in the sidebar */
+.notes-row {
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.notes-row:hover, .notes-row.active {
+  background-color: var(--accent-purple);
+  color: #ffffff;
+}
+
+.notes-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.notes-arrow {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.1rem;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.notes-arrow.open {
+  transform: rotate(90deg);
+}
+
+/* Dropdown list of notes */
+.notes-list {
+  display: none;
+  margin: 4px 0 0 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.notes-list.open {
+  display: block;
+}
+
+.sidebar-nav .notes-list li {
+  margin-bottom: 2px;
+}
+
+.sidebar-nav .notes-list a {
+  padding: 8px 18px;
+  font-size: 1rem;
+  border-radius: 8px;
+}
+
+.notes-list a span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notes-empty {
+  padding: 8px 18px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* Notes grid page */
+.notes-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.new-note-btn {
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  background-color: var(--accent-purple);
+  color: #ffffff;
+  transition: all 0.2s;
+}
+
+.new-note-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.notes-grid .placeholder-text {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1024px) {
+  .notes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .notes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sticky-note {
+  min-height: 140px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #6b6880;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.sticky-note:hover {
+  transform: translateY(-4px);
+}
+
+.sticky-note h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sticky-note p {
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Single note page */
+.back-btn {
+  margin-bottom: 20px;
+  background: none;
+  border: none;
+  color: var(--accent-purple);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  color: var(--accent-hover);
+}
+
+.note-title-input {
+  width: 100%;
+  background-color: var(--card-inner);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: var(--text-main);
+  font-size: 1.2rem;
+  font-weight: 600;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.note-body-input {
+  width: 100%;
+  height: 340px;
+  background-color: var(--card-inner);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  color: var(--text-main);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.note-title-input:focus, .note-body-input:focus {
+  border-color: var(--accent-purple);
+}
+
+.note-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.delete-note-btn {
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  background-color: #f44336;
+  color: #ffffff;
+  transition: opacity 0.2s;
+}
+
+.delete-note-btn:hover {
+  opacity: 0.9;
+}
